@@ -1,5 +1,3 @@
-const BASE_URL = 'http://localhost:3000/posts';
-
 document.addEventListener('DOMContentLoaded', main);
 
 function main() {
@@ -10,8 +8,11 @@ function main() {
 
 // CORE: Fetch and display post titles
 function displayPosts() {
-  fetch(BASE_URL)
-    .then(res => res.json())
+  fetch('http://localhost:3000/posts')  // GET /posts
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to fetch posts');
+      return res.json();
+    })
     .then(posts => {
       const list = document.getElementById('post-list');
       list.innerHTML = '';
@@ -19,20 +20,43 @@ function displayPosts() {
         const postDiv = document.createElement('div');
         postDiv.textContent = post.title;
         postDiv.dataset.id = post.id;
-        postDiv.addEventListener('click', () => handlePostClick(post.id));
+        postDiv.classList.remove('selected'); // clear previous highlights
+
+        postDiv.addEventListener('click', () => {
+          handlePostClick(post.id);
+
+          // Highlight the selected post
+          document.querySelectorAll('#post-list div').forEach(div => div.classList.remove('selected'));
+          postDiv.classList.add('selected');
+        });
+
         list.appendChild(postDiv);
       });
 
-      // Advanced: auto-load first post
-      if (posts.length > 0) handlePostClick(posts[0].id);
+      // Advanced: auto-load first post and highlight it
+      if (posts.length > 0) {
+        handlePostClick(posts[0].id);
+        list.querySelector('div').classList.add('selected');
+      }
+    })
+    .catch(error => {
+      console.error(error);
+      alert('Error loading posts');
     });
 }
 
 // CORE: Display details of clicked post
 function handlePostClick(id) {
-  fetch(`${BASE_URL}/${id}`)
-    .then(res => res.json())
-    .then(post => renderPostDetail(post));
+  fetch(`http://localhost:3000/posts/${id}`)  // GET /posts/:id
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to fetch post details');
+      return res.json();
+    })
+    .then(post => renderPostDetail(post))
+    .catch(error => {
+      console.error(error);
+      alert('Error loading post details');
+    });
 }
 
 function renderPostDetail(post) {
@@ -61,16 +85,22 @@ function addNewPostListener() {
       author: document.getElementById('new-author').value
     };
 
-    // Advanced: persist with POST
-    fetch(BASE_URL, {
+    fetch('http://localhost:3000/posts', {  // POST /posts
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newPost)
     })
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to create post');
+      return res.json();
+    })
     .then(() => {
       form.reset();
       displayPosts();
+    })
+    .catch(error => {
+      console.error(error);
+      alert('Error creating new post');
     });
   });
 }
@@ -97,16 +127,23 @@ function editPostListener() {
       content: document.getElementById('edit-content').value
     };
 
-    fetch(`${BASE_URL}/${id}`, {
+    fetch(`http://localhost:3000/posts/${id}`, {  // PATCH /posts/:id
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedPost)
     })
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to update post');
+      return res.json();
+    })
     .then(post => {
       form.classList.add('hidden');
       renderPostDetail(post);
       displayPosts();
+    })
+    .catch(error => {
+      console.error(error);
+      alert('Error updating post');
     });
   });
 
@@ -117,10 +154,16 @@ function editPostListener() {
 
 // ADVANCED: Delete a post
 function deletePost(id) {
-  fetch(`${BASE_URL}/${id}`, {
+  fetch(`http://localhost:3000/posts/${id}`, {  // DELETE /posts/:id
     method: 'DELETE'
-  }).then(() => {
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('Failed to delete post');
     document.getElementById('post-detail').innerHTML = '<p>Select a post to see details</p>';
     displayPosts();
+  })
+  .catch(error => {
+    console.error(error);
+    alert('Error deleting post');
   });
 }
