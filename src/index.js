@@ -1,169 +1,99 @@
-document.addEventListener('DOMContentLoaded', main);
+const API = 'http://localhost:3000/posts';
 
-function main() {
-  displayPosts();
-  addNewPostListener();
-  editPostListener();
-}
-
-// CORE: Fetch and display post titles
 function displayPosts() {
-  fetch('http://localhost:3000/posts')  // GET /posts
-    .then(res => {
-      if (!res.ok) throw new Error('Failed to fetch posts');
-      return res.json();
-    })
+  fetch(API)
+    .then(res => res.json())
     .then(posts => {
-      const list = document.getElementById('post-list');
+      const list = document.querySelector('#post-list');
       list.innerHTML = '';
       posts.forEach(post => {
-        const postDiv = document.createElement('div');
-        postDiv.textContent = post.title;
-        postDiv.dataset.id = post.id;
-        postDiv.classList.remove('selected'); // clear previous highlights
-
-        postDiv.addEventListener('click', () => {
-          handlePostClick(post.id);
-
-          // Highlight the selected post
-          document.querySelectorAll('#post-list div').forEach(div => div.classList.remove('selected'));
-          postDiv.classList.add('selected');
-        });
-
-        list.appendChild(postDiv);
+        const item = document.createElement('div');
+        item.textContent = `${post.title}\n${post.author} • ${post.date}`;
+        item.className = 'bg-white shadow px-3 py-2 rounded hover:bg-gray-100';
+        item.addEventListener('click', () => handlePostClick(post));
+        list.appendChild(item);
       });
-
-      // Advanced: auto-load first post and highlight it
-      if (posts.length > 0) {
-        handlePostClick(posts[0].id);
-        list.querySelector('div').classList.add('selected');
-      }
-    })
-    .catch(error => {
-      console.error(error);
-      alert('Error loading posts');
+      if (posts[0]) handlePostClick(posts[0]);
     });
 }
 
-// CORE: Display details of clicked post
-function handlePostClick(id) {
-  fetch(`http://localhost:3000/posts/${id}`)  // GET /posts/:id
-    .then(res => {
-      if (!res.ok) throw new Error('Failed to fetch post details');
-      return res.json();
-    })
-    .then(post => renderPostDetail(post))
-    .catch(error => {
-      console.error(error);
-      alert('Error loading post details');
-    });
-}
-
-function renderPostDetail(post) {
-  const detail = document.getElementById('post-detail');
+function handlePostClick(post) {
+  const detail = document.querySelector('#post-detail');
   detail.innerHTML = `
-    <h2>${post.title}</h2>
+    <h2 class="text-2xl font-bold">${post.title}</h2>
+    <p class="text-sm text-gray-500">By ${post.author} • ${post.date}</p>
+    <img src="${post.image}" alt="${post.title}" class="my-4 rounded-md" />
     <p>${post.content}</p>
-    <p><em>By ${post.author}</em></p>
-    <button id="edit-btn">Edit</button>
-    <button id="delete-btn">Delete</button>
+    <div class="mt-4 flex gap-2">
+      <button id="edit-btn" class="flex items-center gap-1 text-sm text-blue-700 hover:text-blue-900">
+        ✎ Edit
+      </button>
+      <button id="delete-btn" class="flex items-center gap-1 text-sm text-red-700 hover:text-red-900">
+        🗑️ Delete
+      </button>
+    </div>
   `;
 
-  document.getElementById('edit-btn').addEventListener('click', () => showEditForm(post));
-  document.getElementById('delete-btn').addEventListener('click', () => deletePost(post.id));
+  document.querySelector('#edit-btn').addEventListener('click', () => {
+    document.querySelector('#edit-post-form').classList.remove('hidden');
+    document.querySelector('#edit-title').value = post.title;
+    document.querySelector('#edit-content').value = post.content;
+    document.querySelector('#edit-post-form').onsubmit = function (e) {
+      e.preventDefault();
+      const updatedPost = {
+        title: e.target.title.value,
+        content: e.target.content.value
+      };
+      fetch(`${API}/${post.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedPost)
+      })
+        .then(res => res.json())
+        .then(() => {
+          displayPosts();
+          document.querySelector('#edit-post-form').classList.add('hidden');
+        });
+    };
+  });
+
+  document.querySelector('#delete-btn').addEventListener('click', () => {
+    fetch(`${API}/${post.id}`, { method: 'DELETE' })
+      .then(() => displayPosts());
+  });
 }
 
-// CORE: Add new post
 function addNewPostListener() {
-  const form = document.getElementById('new-post-form');
-  form.addEventListener('submit', e => {
+  document.querySelector('#new-post-form').addEventListener('submit', e => {
     e.preventDefault();
-
+    const form = e.target;
     const newPost = {
-      title: document.getElementById('new-title').value,
-      content: document.getElementById('new-content').value,
-      author: document.getElementById('new-author').value
+      title: form.title.value,
+      author: form.author.value,
+      date: new Date().toISOString().split('T')[0],
+      content: form.content.value,
+      image: form.image.value
     };
-
-    fetch('http://localhost:3000/posts', {  // POST /posts
+    fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newPost)
     })
-    .then(res => {
-      if (!res.ok) throw new Error('Failed to create post');
-      return res.json();
-    })
-    .then(() => {
-      form.reset();
-      displayPosts();
-    })
-    .catch(error => {
-      console.error(error);
-      alert('Error creating new post');
-    });
+      .then(res => res.json())
+      .then(() => {
+        form.reset();
+        displayPosts();
+      });
+  });
+
+  document.querySelector('#cancel-edit').addEventListener('click', () => {
+    document.querySelector('#edit-post-form').classList.add('hidden');
   });
 }
 
-// ADVANCED: Show and populate edit form
-function showEditForm(post) {
-  const form = document.getElementById('edit-post-form');
-  form.classList.remove('hidden');
-  form.dataset.id = post.id;
-  document.getElementById('edit-title').value = post.title;
-  document.getElementById('edit-content').value = post.content;
+function main() {
+  displayPosts();
+  addNewPostListener();
 }
 
-// ADVANCED: Submit edited post
-function editPostListener() {
-  const form = document.getElementById('edit-post-form');
-
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-
-    const id = form.dataset.id;
-    const updatedPost = {
-      title: document.getElementById('edit-title').value,
-      content: document.getElementById('edit-content').value
-    };
-
-    fetch(`http://localhost:3000/posts/${id}`, {  // PATCH /posts/:id
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedPost)
-    })
-    .then(res => {
-      if (!res.ok) throw new Error('Failed to update post');
-      return res.json();
-    })
-    .then(post => {
-      form.classList.add('hidden');
-      renderPostDetail(post);
-      displayPosts();
-    })
-    .catch(error => {
-      console.error(error);
-      alert('Error updating post');
-    });
-  });
-
-  document.getElementById('cancel-edit').addEventListener('click', () => {
-    form.classList.add('hidden');
-  });
-}
-
-// ADVANCED: Delete a post
-function deletePost(id) {
-  fetch(`http://localhost:3000/posts/${id}`, {  // DELETE /posts/:id
-    method: 'DELETE'
-  })
-  .then(res => {
-    if (!res.ok) throw new Error('Failed to delete post');
-    document.getElementById('post-detail').innerHTML = '<p>Select a post to see details</p>';
-    displayPosts();
-  })
-  .catch(error => {
-    console.error(error);
-    alert('Error deleting post');
-  });
-}
+document.addEventListener('DOMContentLoaded', main);
