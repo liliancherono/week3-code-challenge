@@ -1,7 +1,7 @@
 /* style.css */
 body {
   background-image:
-    linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.85)),
+    linear-gradient(rgba(150, 146, 146, 0.7), rgba(223, 212, 212, 0.85)),
     url('https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80');
   background-size: cover;
   background-position: center;
@@ -82,7 +82,7 @@ button[type="reset"]:hover,
 
   input,
   textarea {
-    background-color: #374151;
+    background-color:#323335;
     color: white;
     border-color: #4b5563;
   }

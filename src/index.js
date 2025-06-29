@@ -26,10 +26,10 @@ function handlePostClick(post) {
     <p>${post.content}</p>
     <div class="mt-4 flex gap-2">
       <button id="edit-btn" class="flex items-center gap-1 text-sm text-blue-700 hover:text-blue-900">
-        ✎ Edit
+         Edit
       </button>
       <button id="delete-btn" class="flex items-center gap-1 text-sm text-red-700 hover:text-red-900">
-        🗑️ Delete
+         Delete
       </button>
     </div>
   `;
