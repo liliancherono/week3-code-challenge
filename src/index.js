@@ -1,4 +1,4 @@
-const API = 'http://localhost:3000/posts';
+const API = 'https://json-server-a3m4.onrender.com/posts';
 
 function displayPosts() {
   fetch(API)
